@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CleanYard53 — Газоны летом, чистота зимой</title>
+
+<!-- Tailwind CSS через CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Шрифты: Unbounded — жирный акцентный шрифт для заголовков, Inter — для основного текста -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script>
+  // Настройка кастомной палитры и шрифтов Tailwind.
+  // Всё завязано на CSS-переменных, которые меняются в зависимости от класса на <body>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          display: ['Unbounded', 'sans-serif'],
+          body: ['Inter', 'sans-serif'],
+        },
+        colors: {
+          // Эти цвета управляются через CSS-переменные (см. <style> ниже),
+          // поэтому их значения фактически задаются там, а не здесь.
+          brand: {
+            bg: 'var(--color-bg)',
+            surface: 'var(--color-surface)',
+            primary: 'var(--color-primary)',
+            secondary: 'var(--color-secondary)',
+            accent: 'var(--color-accent)',
+            text: 'var(--color-text)',
+            muted: 'var(--color-muted)',
+          }
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  /* =========================================================
+     ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ТЕМЫ
+     Меняя значения здесь для .season-summer и .season-winter,
+     вы легко перекрашиваете весь сайт целиком.
+     ========================================================= */
+  :root {
+    --color-bg: #FAF9F2;
+    --color-surface: #FFFFFF;
+    --color-primary: #2E7D32;
+    --color-secondary: #F4C430;
+    --color-accent: #1B5E20;
+    --color-text: #1A1F16;
+    --color-muted: #5B6558;
+  }
+
+  body.season-winter {
+    --color-bg: #0B1B2B;
+    --color-surface: #14293D;
+    --color-primary: #4FC3F7;
+    --color-secondary: #FF7A00;
+    --color-accent: #E3F2FD;
+    --color-text: #EAF3FB;
+    --color-muted: #92AABF;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    transition: background-color 0.7s ease, color 0.7s ease;
+  }
+
+  /* Плавный переход фона/цвета/бордеров для всех элементов с этим классом-хелпером */
+  .theme-transition {
+    transition: background-color 0.6s ease, color 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease, opacity 0.6s ease;
+  }
+
+  /* ===================== ПЕРЕКЛЮЧАТЕЛЬ СЕЗОНОВ ===================== */
+  .season-switch {
+    position: relative;
+    width: 160px;
+    height: 44px;
+    border-radius: 999px;
+    background: var(--color-surface);
+    border: 2px solid var(--color-primary);
+    padding: 4px;
+    cursor: pointer;
+    transition: border-color 0.6s ease, background-color 0.6s ease;
+  }
+  @media (min-width: 640px) {
+    .season-switch {
+      width: 220px;
+      height: 56px;
+    }
+  }
+  .season-switch__thumb {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: calc(50% - 4px);
+    height: calc(100% - 8px);
+    border-radius: 999px;
+    background: var(--color-primary);
+    transition: transform 0.45s cubic-bezier(.65,0,.35,1), background-color 0.6s ease;
+    z-index: 0;
+  }
+  body.season-winter .season-switch__thumb {
+    transform: translateX(calc(100% + 0px));
+  }
+  .season-switch__label {
+    position: relative;
+    z-index: 1;
+    width: 50%;
+    text-align: center;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    pointer-events: none;
+    transition: color 0.4s ease;
+  }
+  @media (min-width: 640px) {
+    .season-switch__label {
+      font-size: 13px;
+    }
+  }
+
+  /* ===================== АНИМАЦИЯ ТРАВЫ (ЛЕТО) ===================== */
+  .grass-field {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .grass-blade {
+    width: 4px;
+    margin: 0 1px;
+    background: linear-gradient(to top, var(--color-accent), var(--color-primary));
+    border-radius: 4px 4px 0 0;
+    transform-origin: bottom center;
+    height: 0;
+    transition: height 0.9s cubic-bezier(.34,1.56,.64,1);
+  }
+  body.season-summer .grass-blade {
+    height: var(--h, 30px);
+  }
+  body.season-summer .grass-blade:nth-child(odd) {
+    animation: sway 3.2s ease-in-out infinite alternate;
+  }
+  body.season-summer .grass-blade:nth-child(even) {
+    animation: sway 2.6s ease-in-out infinite alternate-reverse;
+  }
+  @keyframes sway {
+    from { transform: rotate(-4deg); }
+    to { transform: rotate(4deg); }
+  }
+
+  /* ===================== ПАДАЮЩИЙ СНЕГ (ЗИМА) ===================== */
+  #snow-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 40;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+  body.season-winter #snow-layer {
+    opacity: 1;
+  }
+  .snowflake {
+    position: absolute;
+    top: -10px;
+    background: white;
+    border-radius: 50%;
+    opacity: 0.85;
+    animation-name: fall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+  @keyframes fall {
+    0%   { transform: translateY(0) translateX(0); }
+    50%  { transform: translateY(50vh) translateX(15px); }
+    100% { transform: translateY(105vh) translateX(-10px); }
+  }
+
+  /* Скрываем/показываем блоки, привязанные к конкретному сезону */
+  .only-summer, .only-winter { transition: opacity 0.5s ease; }
+  body.season-winter .only-summer { display: none; }
+  body.season-summer .only-winter { display: none; }
+
+  /* Плавающая карточка иконки услуги при наведении */
+  .lift-on-hover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+  .lift-on-hover:hover { transform: translateY(-6px); }
+
+  /* Мягкий фокус для доступности с клавиатуры */
+  a:focus-visible, button:focus-visible {
+    outline: 3px solid var(--color-secondary);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
+
+  /* ===================== ПЛАВНЫЙ СКРОЛЛ ПО ЯКОРЯМ ===================== */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* ===================== ПЛАВНОЕ ПОЯВЛЕНИЕ ЭЛЕМЕНТОВ ПРИ СКРОЛЛЕ =====================
+     Вешаем класс "reveal" на любой блок — он появится снизу с затуханием,
+     когда докрутите до него страницу. Работает через JS (IntersectionObserver) ниже.
+     Чтобы добавить анимацию новому блоку — просто добавьте ему class="reveal". */
+  .reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.8s cubic-bezier(.22,1,.36,1), transform 0.8s cubic-bezier(.22,1,.36,1);
+    will-change: opacity, transform;
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  /* Лёгкая ступенчатая задержка для карточек внутри одной группы (тарифы и т.д.) */
+  .reveal-group > .reveal:nth-child(1) { transition-delay: 0s; }
+  .reveal-group > .reveal:nth-child(2) { transition-delay: 0.12s; }
+  .reveal-group > .reveal:nth-child(3) { transition-delay: 0.24s; }
+  .reveal-group > .reveal:nth-child(4) { transition-delay: 0.36s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+</head>
+
+<!--
+  ВАЖНО ДЛЯ РАЗРАБОТЧИКА:
+  Класс "season-summer" или "season-winter" на <body> управляет ВСЕЙ темой сайта.
+  По умолчанию открываем сайт в летней теме.
+-->
+<body class="season-summer font-body theme-transition">
+
+  <!-- Слой падающего снега. Наполняется снежинками через JS, виден только зимой -->
+  <div id="snow-layer"></div>
+
+  <!-- =========================================================
+       ШАПКА / НАВИГАЦИЯ
+       ========================================================= -->
+  <header class="fixed top-0 left-0 w-full z-50 bg-brand-surface/90 backdrop-blur-md border-b border-brand-primary/20 theme-transition">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-3 flex-nowrap">
+
+      <!-- Логотип. Замените текст, если понадобится другое название бренда -->
+      <a href="#hero" class="font-display font-black text-sm sm:text-xl text-brand-primary theme-transition whitespace-nowrap shrink-0">
+        Clean<span class="text-brand-secondary">Yard</span>53
+      </a>
+
+      <!-- ПЕРЕКЛЮЧАТЕЛЬ СЕЗОНОВ: клик по нему меняет класс на <body> -->
+      <button id="season-toggle" type="button" class="season-switch shrink-0" aria-pressed="false" aria-label="Переключить сезон Лето / Зима">
+        <span class="season-switch__thumb"></span>
+        <span class="flex w-full h-full items-center absolute inset-0">
+          <span class="season-switch__label" style="color:#fff;">☀️ Лето</span>
+          <span class="season-switch__label" style="color:var(--color-muted);">❄️ Зима</span>
+        </span>
+      </button>
+
+      <!-- Динамическая контактная ссылка: текст и адрес меняются JS-ом в зависимости от сезона -->
+      <a id="header-contact" href="https://t.me" target="_blank" rel="noopener"
+         class="shrink-0 inline-flex items-center gap-1 sm:gap-2 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-brand-primary text-white font-semibold text-[11px] sm:text-sm theme-transition hover:opacity-90 whitespace-nowrap">
+        <span id="header-contact-text">Заявка</span>
+        <span aria-hidden="true">→</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- =========================================================
+       ГЕРОЙ-СЕКЦИЯ
+       ========================================================= -->
+  <section id="hero" class="relative pt-28 pb-14 sm:pt-40 sm:pb-28 overflow-hidden theme-transition">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-2 gap-12 items-center relative z-10">
+
+      <div class="reveal">
+        <!-- Метка-эйфори над заголовком, меняется по сезону -->
+        <p class="font-display text-xs sm:text-sm tracking-widest uppercase text-brand-secondary mb-4">
+          <span class="only-summer">Регион 53 · Сезон стрижки открыт</span>
+          <span class="only-winter">Регион 53 · Дежурим круглые сутки</span>
+        </p>
+
+        <!-- Главный заголовок. Замените текст на свой при необходимости -->
+        <h1 class="font-display font-black leading-[1.05] text-4xl sm:text-5xl lg:text-6xl text-brand-text theme-transition">
+          <span class="only-summer">Идеальный газон вашего участка</span>
+          <span class="only-winter">Профессиональная уборка снега в Новгородской области</span>
+        </h1>
+
+        <p class="mt-6 text-base sm:text-lg text-brand-muted max-w-lg theme-transition">
+          <span class="only-summer">Ровный, густой и ухоженный газон без вашего участия. Приезжаем по графику или по звонку — косим быстро, аккуратно и без лишнего шума.</span>
+          <span class="only-winter">Расчищаем дворы, подъезды и парковки до чистого асфальта. Работаем в любой снегопад — вы просыпаетесь, а снега уже нет.</span>
+        </p>
+
+        <div class="mt-8 flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+          <!-- Основная кнопка CTA — ведёт к футеру с контактами -->
+          <a href="#contacts" class="text-center px-5 py-3.5 sm:px-7 sm:py-4 rounded-2xl bg-brand-primary text-white font-display font-bold text-sm sm:text-base shadow-lg shadow-brand-primary/30 hover:opacity-90 theme-transition">
+            <span class="only-summer">Записаться на стрижку</span>
+            <span class="only-winter">Вызвать уборку снега</span>
+          </a>
+          <a href="#pricing" class="text-center px-5 py-3.5 sm:px-7 sm:py-4 rounded-2xl border-2 border-brand-primary text-brand-primary font-display font-bold text-sm sm:text-base hover:bg-brand-primary/10 theme-transition">
+            Узнать цены
+          </a>
+        </div>
+      </div>
+
+      <!--
+        Графика героя: техника переключается вместе с сезоном.
+        Сейчас это встроенные SVG-иллюстрации (чтобы всё работало без внешних файлов).
+        Если хотите использовать РЕАЛЬНЫЕ ФОТО вместо SVG — просто замените
+        каждый <svg>...</svg> ниже на:
+          <img src="placeholder-lawnmower.jpg" alt="Газонокосилка" class="w-full h-full object-cover">
+          <img src="placeholder-snowblower.jpg" alt="Снегоуборочная машина" class="w-full h-full object-cover">
+        и оставьте классы only-summer / only-winter как есть — переключение продолжит работать.
+      -->
+      <div class="relative reveal mt-4 md:mt-0" style="transition-delay:0.15s;">
+        <div class="rounded-3xl overflow-hidden shadow-2xl bg-brand-surface theme-transition aspect-[4/3] flex items-center justify-center p-4 sm:p-10">
+
+          <!-- ЛЕТО: газонокосилка (видна только в летней теме) -->
+          <svg class="only-summer w-full h-full" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Газонокосилка">
+            <!-- фон-небо/трава -->
+            <rect x="0" y="220" width="400" height="80" fill="var(--color-primary)" opacity="0.12"/>
+            <!-- солнце -->
+            <circle cx="340" cy="60" r="34" fill="var(--color-secondary)"/>
+            <!-- корпус газонокосилки -->
+            <rect x="120" y="150" width="150" height="60" rx="14" fill="var(--color-primary)"/>
+            <rect x="130" y="130" width="90" height="30" rx="10" fill="var(--color-accent)"/>
+            <!-- ручка -->
+            <line x1="250" y1="150" x2="320" y2="90" stroke="var(--color-accent)" stroke-width="10" stroke-linecap="round"/>
+            <line x1="300" y1="95" x2="330" y2="95" stroke="var(--color-accent)" stroke-width="10" stroke-linecap="round"/>
+            <!-- колёса -->
+            <circle cx="150" cy="225" r="26" fill="#2b2b2b"/>
+            <circle cx="150" cy="225" r="10" fill="var(--color-secondary)"/>
+            <circle cx="250" cy="225" r="26" fill="#2b2b2b"/>
+            <circle cx="250" cy="225" r="10" fill="var(--color-secondary)"/>
+            <!-- выброс травы -->
+            <rect x="255" y="165" width="34" height="26" rx="6" fill="var(--color-secondary)"/>
+            <!-- травинки на переднем плане -->
+            <g stroke="var(--color-accent)" stroke-width="4" stroke-linecap="round">
+              <line x1="40" y1="250" x2="40" y2="225"/>
+              <line x1="55" y1="250" x2="52" y2="220"/>
+              <line x1="70" y1="250" x2="72" y2="228"/>
+              <line x1="330" y1="250" x2="330" y2="222"/>
+              <line x1="350" y1="250" x2="347" y2="228"/>
+              <line x1="370" y1="250" x2="373" y2="222"/>
+            </g>
+          </svg>
+
+          <!-- ЗИМА: снегоуборочная машина (видна только в зимней теме) -->
+          <svg class="only-winter w-full h-full" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Снегоуборочная машина">
+            <!-- сугроб -->
+            <path d="M0 240 Q100 200 200 235 T400 230 V300 H0 Z" fill="var(--color-accent)" opacity="0.18"/>
+            <!-- корпус -->
+            <rect x="110" y="150" width="170" height="65" rx="16" fill="var(--color-primary)"/>
+            <rect x="120" y="120" width="70" height="35" rx="10" fill="var(--color-secondary)"/>
+            <!-- кабина/стекло -->
+            <rect x="130" y="126" width="45" height="22" rx="4" fill="#0B1B2B"/>
+            <!-- шнек-отвал спереди -->
+            <path d="M270 150 L320 130 L320 200 L270 210 Z" fill="var(--color-secondary)"/>
+            <!-- выброс снега -->
+            <rect x="150" y="95" width="16" height="35" rx="6" fill="var(--color-secondary)"/>
+            <circle cx="158" cy="90" r="9" fill="white"/>
+            <!-- гусеницы вместо колёс -->
+            <rect x="120" y="205" width="70" height="26" rx="13" fill="#101010"/>
+            <rect x="205" y="205" width="70" height="26" rx="13" fill="#101010"/>
+            <!-- снежинки на переднем плане -->
+            <g fill="white" opacity="0.9">
+              <circle cx="40" cy="60" r="4"/>
+              <circle cx="70" cy="100" r="3"/>
+              <circle cx="30" cy="140" r="3.5"/>
+              <circle cx="360" cy="70" r="4"/>
+              <circle cx="380" cy="120" r="3"/>
+              <circle cx="345" cy="160" r="3.5"/>
+            </g>
+          </svg>
+
+        </div>
+
+        <!-- Декоративная плашка-бейдж поверх картинки -->
+        <div class="absolute -bottom-3 left-2 sm:-bottom-5 sm:-left-5 bg-brand-secondary text-brand-accent px-3 py-2 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl font-display font-bold text-xs sm:text-sm shadow-xl theme-transition max-w-[85%]">
+          <span class="only-summer">🌱 Уже 53 довольных двора</span>
+          <span class="only-winter">🚨 Выезд от 40 минут</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Анимированная травка вдоль нижнего края секции — видна только летом, генерируется JS -->
+    <div id="grass-field" class="grass-field"></div>
+  </section>
+
+  <!-- =========================================================
+       ЦЕНЫ
+       ========================================================= -->
+  <section id="pricing" class="py-14 sm:py-28 bg-brand-surface theme-transition">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-14 reveal">
+        <p class="font-display text-xs tracking-widest uppercase text-brand-secondary mb-3">Цены</p>
+        <h2 class="font-display font-black text-3xl sm:text-4xl text-brand-text theme-transition">
+          <span class="only-summer">Стоимость стрижки газона</span>
+          <span class="only-winter">Стоимость уборки снега</span>
+        </h2>
+        <p class="mt-4 text-brand-muted theme-transition">Цена зависит от масштаба участка — чем больше площадь, тем выгоднее тариф за сотку.</p>
+      </div>
+
+      <!-- Карточки тарифов. Меняйте цифры прямо в тексте ниже -->
+      <div class="grid sm:grid-cols-3 gap-6 reveal-group">
+
+        <!-- Тариф 1 -->
+        <div class="lift-on-hover rounded-3xl border-2 border-brand-primary/20 p-5 sm:p-8 bg-brand-bg theme-transition reveal">
+          <p class="font-display font-bold text-brand-primary mb-2 theme-transition text-sm sm:text-base">
+            <span class="only-summer">До 5 соток</span>
+            <span class="only-winter">До 3 соток</span>
+          </p>
+          <p class="font-display font-black text-3xl sm:text-4xl text-brand-text mb-4 theme-transition">
+            <span class="only-summer">от 1 500 ₽</span>
+            <span class="only-winter">от 1 200 ₽</span>
+          </p>
+          <p class="text-sm text-brand-muted theme-transition">
+            <span class="only-summer">Небольшой двор или палисадник. Стрижка + уборка скошенной травы.</span>
+            <span class="only-winter">Придомовая территория и дорожки. Ручная и механическая расчистка.</span>
+          </p>
+        </div>
+
+        <!-- Тариф 2 (популярный) -->
+        <div class="lift-on-hover rounded-3xl p-5 sm:p-8 bg-brand-primary text-white relative theme-transition shadow-xl reveal">
+          <span class="absolute -top-3 right-6 bg-brand-secondary text-brand-accent text-xs font-display font-bold px-3 py-1 rounded-full theme-transition">Популярный</span>
+          <p class="font-display font-bold mb-2 opacity-90 text-sm sm:text-base">
+            <span class="only-summer">От 10 соток</span>
+            <span class="only-winter">От 8 соток</span>
+          </p>
+          <p class="font-display font-black text-3xl sm:text-4xl mb-4">
+            <span class="only-summer">от 2 800 ₽</span>
+            <span class="only-winter">от 2 500 ₽</span>
+          </p>
+          <p class="text-sm opacity-90">
+            <span class="only-summer">Средний участок. Стрижка, обработка кромок, вывоз травы.</span>
+            <span class="only-winter">Двор, подъезд и парковка на несколько машин под чистый асфальт.</span>
+          </p>
+        </div>
+
+        <!-- Тариф 3 -->
+        <div class="lift-on-hover rounded-3xl border-2 border-brand-primary/20 p-5 sm:p-8 bg-brand-bg theme-transition reveal">
+          <p class="font-display font-bold text-brand-primary mb-2 theme-transition text-sm sm:text-base">
+            <span class="only-summer">От 20 соток</span>
+            <span class="only-winter">От 15 соток</span>
+          </p>
+          <p class="font-display font-black text-3xl sm:text-4xl text-brand-text mb-4 theme-transition">
+            <span class="only-summer">от 4 900 ₽</span>
+            <span class="only-winter">от 4 500 ₽</span>
+          </p>
+          <p class="text-sm text-brand-muted theme-transition">
+            <span class="only-summer">Большая территория, коттеджный посёлок, база отдыха.</span>
+            <span class="only-winter">Коммерческие объекты, базы, крупные придомовые территории.</span>
+          </p>
+        </div>
+      </div>
+
+      <p class="text-center text-brand-muted text-sm mt-8 theme-transition">
+        Точную стоимость назовём после короткого разговора и оценки участка — без скрытых доплат.
+      </p>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       О НАС
+       ========================================================= -->
+  <section id="about" class="py-14 sm:py-28 theme-transition">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center reveal">
+      <p class="font-display text-xs tracking-widest uppercase text-brand-secondary mb-3">О нас</p>
+      <h2 class="font-display font-black text-3xl sm:text-4xl mb-6 text-brand-text theme-transition">Два брата, которые держат слово</h2>
+      <!-- Текст ниже — фиксированный плейсхолдер по ТЗ, при желании замените на свой -->
+      <p class="text-lg sm:text-xl text-brand-muted leading-relaxed theme-transition">
+        Мы два брата-акробата, решили сделать бизнес. Работаем на совесть, ценим ваше время и заботимся о чистоте вашего двора круглый год.
+      </p>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       ФУТЕР / КОНТАКТЫ (без форм — только Telegram и ВК)
+       ========================================================= -->
+  <footer id="contacts" class="py-14 sm:py-28 bg-brand-surface theme-transition">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center reveal">
+      <p class="font-display text-xs tracking-widest uppercase text-brand-secondary mb-3">Связаться с нами</p>
+      <h2 class="font-display font-black text-3xl sm:text-4xl mb-4 text-brand-text theme-transition">Пишите — ответим в течение 15 минут</h2>
+      <p class="text-brand-muted mb-12 theme-transition">Без анкет и звонков роботов. Просто напишите нам в удобный мессенджер.</p>
+
+      <div class="grid sm:grid-cols-2 gap-6 max-w-3xl mx-auto reveal-group">
+
+        <!-- Кнопка Telegram: замените href на ссылку вашего реального аккаунта/бота -->
+        <a href="https://t.me" target="_blank" rel="noopener"
+           class="reveal flex items-center justify-center gap-3 sm:gap-4 rounded-2xl sm:rounded-3xl px-5 py-5 sm:px-8 sm:py-8 font-display font-bold text-sm sm:text-lg text-white shadow-xl hover:scale-[1.02] transition-transform"
+           style="background-color:#26A5E4;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" class="sm:w-[34px] sm:h-[34px]" fill="currentColor" aria-hidden="true">
+            <path d="M9.999 15.166l-.397 5.59c.568 0 .814-.244 1.11-.537l2.663-2.545 5.522 4.03c1.012.557 1.73.264 1.99-.938L23.94 3.15c.36-1.475-.532-2.05-1.518-1.69L1.11 9.51C-.33 10.06-.31 10.85.86 11.21l5.62 1.75L19.86 4.9c.61-.4 1.17-.18.71.22" />
+          </svg>
+          Написать в Telegram
+        </a>
+
+        <!-- Кнопка ВКонтакте: замените href на ссылку вашего реального сообщества/профиля -->
+        <a href="https://vk.me" target="_blank" rel="noopener"
+           class="reveal flex items-center justify-center gap-3 sm:gap-4 rounded-2xl sm:rounded-3xl px-5 py-5 sm:px-8 sm:py-8 font-display font-bold text-sm sm:text-lg text-white shadow-xl hover:scale-[1.02] transition-transform"
+           style="background-color:#0077FF;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" class="sm:w-[34px] sm:h-[34px]" fill="currentColor" aria-hidden="true">
+            <path d="M13.162 18.994c.609 0 .858-.406.851-.915-.031-1.917.714-2.949 2.059-1.604 1.488 1.488 1.796 2.519 3.603 2.519h3.2c.808 0 1.221-.402 1.221-.995 0-.376-.166-.982-1.081-1.795-1.135-1.008-.984-.845.371-2.615 1.484-1.973 2.116-3.176 1.926-3.703-.181-.501-1.267-.365-1.267-.365l-3.606.021s-.267-.037-.465.081c-.194.116-.318.386-.318.386s-.582 1.545-1.358 2.858c-1.638 2.771-2.293 2.918-2.56 2.746-.62-.399-.465-1.593-.465-2.443 0-2.656.404-3.759-.786-4.048-.395-.096-.687-.16-1.7-.17-1.3-.013-2.4.004-3.024.312-.416.205-.737.66-.542.686.242.032.79.148 1.081.548.375.514.362 1.669.362 1.669s.216 3.166-.503 3.559c-.494.27-1.171-.281-2.634-2.796-.747-1.284-1.312-2.703-1.312-2.703s-.109-.267-.3-.41c-.232-.174-.556-.229-.556-.229l-3.428.021s-.514.014-.703.239c-.168.2-.014.612-.014.612s2.683 6.28 5.721 9.446c2.786 2.902 5.949 2.712 5.949 2.712h1.328z"/>
+          </svg>
+          Написать в ВК
+        </a>
+      </div>
+
+      <p class="text-brand-muted text-xs mt-14 theme-transition">© 2026 CleanYard53. Работаем в Великом Новгороде и области.</p>
+    </div>
+  </footer>
+
+  <script>
+    /* =========================================================
+       ЛОГИКА ПЕРЕКЛЮЧЕНИЯ СЕЗОНА
+       Меняем класс на <body>, обновляем текст контактной кнопки
+       и пересобираем анимации (травка / снег).
+       ========================================================= */
+    const body = document.body;
+    const toggleBtn = document.getElementById('season-toggle');
+    const headerContactText = document.getElementById('header-contact-text');
+    const headerContactLink = document.getElementById('header-contact');
+
+    function setSeason(season) {
+      // season: 'summer' | 'winter'
+      body.classList.remove('season-summer', 'season-winter');
+      body.classList.add('season-' + season);
+      toggleBtn.setAttribute('aria-pressed', season === 'winter');
+
+      // Текст кнопки контакта в шапке меняется вместе с сезоном (короткий — чтобы влезал на телефоне)
+      headerContactText.textContent = season === 'summer'
+        ? 'Стрижка'
+        : 'Уборка снега';
+
+      // Ссылка контакта в шапке — по умолчанию ведёт в Telegram, можно поменять
+      headerContactLink.href = 'https://t.me';
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      const isWinter = body.classList.contains('season-winter');
+      setSeason(isWinter ? 'summer' : 'winter');
+    });
+
+    /* ---------- Генерация травинок для летней анимации ---------- */
+    const grassField = document.getElementById('grass-field');
+    const bladeCount = 60;
+    for (let i = 0; i < bladeCount; i++) {
+      const blade = document.createElement('div');
+      blade.className = 'grass-blade';
+      const height = 18 + Math.random() * 26; // случайная высота травинки
+      blade.style.setProperty('--h', height + 'px');
+      blade.style.animationDelay = (Math.random() * 2) + 's';
+      grassField.appendChild(blade);
+    }
+
+    /* ---------- Генерация снежинок для зимней анимации ---------- */
+    const snowLayer = document.getElementById('snow-layer');
+    const flakeCount = 60;
+    for (let i = 0; i < flakeCount; i++) {
+      const flake = document.createElement('div');
+      flake.className = 'snowflake';
+      const size = 3 + Math.random() * 6;
+      flake.style.width = size + 'px';
+      flake.style.height = size + 'px';
+      flake.style.left = Math.random() * 100 + 'vw';
+      flake.style.animationDuration = (6 + Math.random() * 8) + 's';
+      flake.style.animationDelay = (Math.random() * 10) + 's';
+      flake.style.opacity = 0.4 + Math.random() * 0.6;
+      snowLayer.appendChild(flake);
+    }
+
+    // Стартуем с летней темы (можно поменять на 'winter', если нужно открывать сайт зимой по умолчанию)
+    setSeason('summer');
+
+    /* =========================================================
+       ПЛАВНОЕ ПОЯВЛЕНИЕ БЛОКОВ ПРИ СКРОЛЛЕ
+       Всем элементам с классом "reveal" при попадании во вьюпорт
+       добавляется класс "is-visible" — это и запускает CSS-анимацию выше.
+       ========================================================= */
+    const revealElements = document.querySelectorAll('.reveal');
+
+    if ('IntersectionObserver' in window) {
+      const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            revealObserver.unobserve(entry.target); // анимация один раз, дальше блок остаётся видимым
+          }
+        });
+      }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+      revealElements.forEach(el => revealObserver.observe(el));
+    } else {
+      // На случай очень старых браузеров без IntersectionObserver — просто показываем всё сразу
+      revealElements.forEach(el => el.classList.add('is-visible'));
+    }
+  </script>
+
+</body>
+</html>
